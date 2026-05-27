@@ -11,6 +11,8 @@ export class ApiError extends Error {
   }
 }
 
+const BASE_URL = import.meta.env.VITE_API_URL ?? "";
+
 export async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
   const token = getToken();
   const headers = new Headers(init?.headers);
@@ -22,7 +24,7 @@ export async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> 
     headers.set("Authorization", `Bearer ${token}`);
   }
 
-  const res = await fetch(path, { ...init, headers });
+  const res = await fetch(`${BASE_URL}${path}`, { ...init, headers });
   const data = (await res.json().catch(() => ({}))) as T & { error?: string; details?: unknown };
 
   if (!res.ok) {
