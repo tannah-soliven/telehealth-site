@@ -1,0 +1,4 @@
+ALTER TABLE patient_profiles
+  ADD COLUMN IF NOT EXISTS weight_kg NUMERIC(5, 2),
+  ADD COLUMN IF NOT EXISTS height_cm NUMERIC(5, 2),
+  ADD COLUMN IF NOT EXISTS medical_history TEXT;
