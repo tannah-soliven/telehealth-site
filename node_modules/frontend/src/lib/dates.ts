@@ -60,6 +60,12 @@ export function formatDateTime(iso: string): string {
   return `${formatDate(iso)} at ${formatTime(iso)}`;
 }
 
+/** True when appointment start (API PHT ISO) is now or in the past. */
+export function isAppointmentStartPast(iso: string): boolean {
+  const start = new Date(iso);
+  return !Number.isNaN(start.getTime()) && start.getTime() <= Date.now();
+}
+
 export function groupSlotsByDate<T extends { startsAt: string }>(slots: T[]): Map<string, T[]> {
   const map = new Map<string, T[]>();
   for (const slot of slots) {

@@ -6,8 +6,12 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { fetchUpcomingAppointments } from "@/components/AppointmentList";
 import { ApiError, apiFetch } from "@/lib/api";
-import { formatDateTime } from "@/lib/dates";
+import { formatDateTime, isAppointmentStartPast } from "@/lib/dates";
 import type { Appointment } from "@/lib/types";
+
+function canAddConsultationNotes(appt: Appointment): boolean {
+  return appt.status === "completed" || isAppointmentStartPast(appt.scheduledStart);
+}
 
 export default function DoctorAppointmentsPage() {
   const [appointments, setAppointments] = useState<Appointment[]>([]);
@@ -91,7 +95,9 @@ export default function DoctorAppointmentsPage() {
                       </>
                     ) : null}
 
-                    <ConsultationNotesForm appointmentId={appt.id} />
+                    {canAddConsultationNotes(appt) ? (
+                      <ConsultationNotesForm appointmentId={appt.id} />
+                    ) : null}
 
                     <Button
                       variant="ghost"

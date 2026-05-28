@@ -1,7 +1,6 @@
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 
 import { DashboardLayout } from "@/components/layouts/DashboardLayout";
-import { PlaceholderPage } from "@/components/PlaceholderPage";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { getToken, getUser } from "@/lib/auth";
 import LoginPage from "@/pages/auth/Login";
@@ -21,15 +20,13 @@ const patientNav = [
   { label: "Dashboard", to: "/patient/dashboard" },
   { label: "Find Doctors", to: "/patient/find-doctors" },
   { label: "My Appointments", to: "/patient/appointments" },
-  { label: "Medical Records", to: "/patient/medical-records" },
-  { label: "Notifications", to: "/patient/notifications" }
+  { label: "Medical Records", to: "/patient/medical-records" }
 ];
 
 const doctorNav = [
   { label: "Dashboard", to: "/doctor/dashboard" },
   { label: "My Schedule", to: "/doctor/schedule" },
-  { label: "Upcoming Appointments", to: "/doctor/appointments" },
-  { label: "Consultation Notes", to: "/doctor/consultation-notes" }
+  { label: "Upcoming Appointments", to: "/doctor/appointments" }
 ];
 
 function HomeRedirect() {
@@ -64,15 +61,6 @@ export default function App() {
             <Route path="/patient/doctors/:id" element={<DoctorDetailPage />} />
             <Route path="/patient/appointments" element={<PatientAppointmentsPage />} />
             <Route path="/patient/medical-records" element={<MedicalRecordsPage />} />
-            <Route
-              path="/patient/notifications"
-              element={
-                <PlaceholderPage
-                  title="Notifications"
-                  description="Appointment reminders and system alerts."
-                />
-              }
-            />
             <Route path="/patient/profile" element={<PatientProfilePage />} />
           </Route>
         </Route>
@@ -90,15 +78,6 @@ export default function App() {
             <Route path="/doctor/dashboard" element={<DoctorDashboardHome />} />
             <Route path="/doctor/schedule" element={<DoctorSchedulePage />} />
             <Route path="/doctor/appointments" element={<DoctorAppointmentsPage />} />
-            <Route
-              path="/doctor/consultation-notes"
-              element={
-                <PlaceholderPage
-                  title="Consultation Notes"
-                  description="Document SOAP notes from completed visits."
-                />
-              }
-            />
             <Route path="/doctor/profile" element={<DoctorProfilePage />} />
           </Route>
         </Route>
