@@ -11,7 +11,16 @@ export class ApiError extends Error {
   }
 }
 
-const BASE_URL = import.meta.env.VITE_API_URL ?? (import.meta.env.DEV ? "http://localhost:4000" : "https://telehealth-site-production.up.railway.app");
+const BASE_URL = import.meta.env.VITE_API_URL ?? "";
+
+function buildApiUrl(path: string): string {
+  if (!BASE_URL) {
+    return path;
+  }
+  const normalizedBase = BASE_URL.endsWith("/") ? BASE_URL.slice(0, -1) : BASE_URL;
+  const normalizedPath = path.startsWith("/") ? path : `/${path}`;
+  return `${normalizedBase}${normalizedPath}`;
+}
 
 export async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
   const token = getToken();
@@ -24,7 +33,7 @@ export async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> 
     headers.set("Authorization", `Bearer ${token}`);
   }
 
-  const res = await fetch(`${BASE_URL}${path}`, { ...init, headers });
+  const res = await fetch(buildApiUrl(path), { ...init, headers });
   const data = (await res.json().catch(() => ({}))) as T & { error?: string; details?: unknown };
 
   if (!res.ok) {
