@@ -18,9 +18,26 @@ export function createApp() {
   app.use(express.json());
 
   const allowedOrigin = process.env.FRONTEND_ORIGIN ?? "http://localhost:5173";
+  const explicitOrigins = new Set([
+    allowedOrigin,
+    "https://telehealth-site-frontend.vercel.app"
+  ]);
+
+  const isAllowedOrigin = (origin: string): boolean => {
+    if (explicitOrigins.has(origin)) return true;
+    return /^https:\/\/([a-z0-9-]+\.)*vercel\.app$/i.test(origin);
+  };
+
   app.use(
     cors({
-      origin: allowedOrigin,
+      origin(origin, callback) {
+        // Allow requests with no Origin header (curl, server-to-server, health checks).
+        if (!origin || isAllowedOrigin(origin)) {
+          callback(null, true);
+          return;
+        }
+        callback(new Error(`CORS blocked for origin: ${origin}`));
+      },
       credentials: true
     })
   );
