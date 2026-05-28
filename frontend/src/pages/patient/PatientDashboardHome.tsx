@@ -51,7 +51,13 @@ export default function PatientDashboardHome() {
       });
       setRecommendation(data);
     } catch (e) {
-      setRecommendError(e instanceof ApiError ? e.message : "Could not get recommendations");
+      if (e instanceof ApiError) {
+        setRecommendError(e.message);
+      } else if (e instanceof Error) {
+        setRecommendError(e.message || "Could not get recommendations. Check your connection.");
+      } else {
+        setRecommendError("Could not get recommendations. Please try again.");
+      }
     } finally {
       setRecommending(false);
     }
@@ -91,7 +97,14 @@ export default function PatientDashboardHome() {
               onChange={(e) => setSymptoms(e.target.value)}
             />
           </div>
-          {recommendError ? <p className="text-sm text-destructive">{recommendError}</p> : null}
+          {recommendError ? (
+            <div
+              role="alert"
+              className="rounded-md border border-destructive/50 bg-destructive/10 px-3 py-2 text-sm text-destructive"
+            >
+              {recommendError}
+            </div>
+          ) : null}
           <Button onClick={findDoctor} disabled={recommending}>
             {recommending ? "Finding doctors…" : "Find a Doctor"}
           </Button>
@@ -106,7 +119,13 @@ export default function PatientDashboardHome() {
                 <p className="text-sm text-muted-foreground">{recommendation.reasoning}</p>
               ) : null}
               {recommendation.doctors.length === 0 ? (
-                <p className="text-sm text-muted-foreground">No matching doctors found.</p>
+                <p className="text-sm text-amber-700 dark:text-amber-400">
+                  No doctors matched those specialties yet. Try{" "}
+                  <Link to="/patient/find-doctors" className="underline">
+                    browsing all doctors
+                  </Link>
+                  .
+                </p>
               ) : (
                 <div className="grid gap-3 sm:grid-cols-2">
                   {recommendation.doctors.map((doctor) => (
