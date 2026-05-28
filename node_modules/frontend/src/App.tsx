@@ -18,6 +18,7 @@ import MedicalRecordsPage from "@/pages/patient/MedicalRecords";
 import PatientProfilePage from "@/pages/patient/PatientProfile";
 
 const patientNav = [
+  { label: "Dashboard", to: "/patient/dashboard" },
   { label: "Find Doctors", to: "/patient/find-doctors" },
   { label: "My Appointments", to: "/patient/appointments" },
   { label: "Medical Records", to: "/patient/medical-records" },
@@ -25,6 +26,7 @@ const patientNav = [
 ];
 
 const doctorNav = [
+  { label: "Dashboard", to: "/doctor/dashboard" },
   { label: "My Schedule", to: "/doctor/schedule" },
   { label: "Upcoming Appointments", to: "/doctor/appointments" },
   { label: "Consultation Notes", to: "/doctor/consultation-notes" }
