@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 
 import { ConsultationNotesForm } from "@/components/ConsultationNotesForm";
 import { PatientProfilePanel } from "@/components/PatientProfilePanel";
+import { RescheduleAppointmentDialog } from "@/components/RescheduleAppointmentDialog";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { fetchUpcomingAppointments } from "@/components/AppointmentList";
@@ -13,7 +14,9 @@ export default function DoctorAppointmentsPage() {
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [expandedPatient, setExpandedPatient] = useState<string | null>(null);
+  const [rescheduleTarget, setRescheduleTarget] = useState<Appointment | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -39,22 +42,16 @@ export default function DoctorAppointmentsPage() {
         method: "PATCH",
         body: JSON.stringify({ action: "cancel" })
       });
+      setSuccessMessage(null);
       await load();
     } catch (e) {
       setError(e instanceof ApiError ? e.message : "Failed to cancel");
     }
   }
 
-  async function reschedule(id: string) {
-    try {
-      await apiFetch(`/api/appointments/${id}`, {
-        method: "PATCH",
-        body: JSON.stringify({ action: "reschedule" })
-      });
-      await load();
-    } catch (e) {
-      setError(e instanceof ApiError ? e.message : "Failed to reschedule");
-    }
+  function handleRescheduled() {
+    setSuccessMessage("Appointment rescheduled successfully.");
+    void load();
   }
 
   return (
@@ -64,6 +61,11 @@ export default function DoctorAppointmentsPage() {
         <p className="text-sm text-muted-foreground">Patients scheduled with you</p>
       </div>
 
+      {successMessage ? (
+        <p className="text-sm text-green-600" role="status">
+          {successMessage}
+        </p>
+      ) : null}
       {loading ? <p className="text-sm text-muted-foreground">Loading…</p> : null}
       {error ? <p className="text-sm text-destructive">{error}</p> : null}
 
@@ -93,10 +95,15 @@ export default function DoctorAppointmentsPage() {
                             Join video call
                           </a>
                         </Button>
-                        <Button variant="outline" size="sm" asChild>
-                          <a target="_blank" rel="noreferrer" onClick={() => reschedule(appt.id)}>
-                            Reschedule
-                          </a>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            setSuccessMessage(null);
+                            setRescheduleTarget(appt);
+                          }}
+                        >
+                          Reschedule
                         </Button>
                         <Button
                           variant="destructive"
@@ -105,7 +112,6 @@ export default function DoctorAppointmentsPage() {
                         >
                           Cancel
                         </Button>
-
                       </>
                     ) : null}
 
@@ -136,6 +142,15 @@ export default function DoctorAppointmentsPage() {
             </li>
           ))}
         </ul>
+      ) : null}
+
+      {rescheduleTarget ? (
+        <RescheduleAppointmentDialog
+          appointment={rescheduleTarget}
+          open={Boolean(rescheduleTarget)}
+          onClose={() => setRescheduleTarget(null)}
+          onRescheduled={handleRescheduled}
+        />
       ) : null}
     </div>
   );

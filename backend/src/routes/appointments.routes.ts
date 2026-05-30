@@ -86,6 +86,34 @@ async function createBookingNotifications(
   );
 }
 
+async function createRescheduleNotifications(
+  client: import("pg").PoolClient,
+  appointmentId: string,
+  patientUserId: string,
+  doctorUserId: string,
+  when: string,
+  doctorName: string,
+  patientName: string
+) {
+  await client.query(
+    `INSERT INTO notifications (user_id, type, title, body, related_appointment_id)
+     VALUES
+       ($1, 'appointment_confirmed', 'Appointment rescheduled', $3, $5),
+       ($2, 'appointment_confirmed', 'Appointment rescheduled', $4, $5)`,
+    [
+      patientUserId,
+      doctorUserId,
+      `Your appointment with ${doctorName} has been rescheduled to ${when}.`,
+      `Your appointment with ${patientName} has been rescheduled to ${when}.`,
+      appointmentId
+    ]
+  );
+}
+
+const doctorRescheduleSchema = z.object({
+  scheduledAt: z.string().min(1)
+});
+
 router.get(
   "/",
   requireAuth,
@@ -284,6 +312,166 @@ router.post(
 
       const full = await pool.query(`${APPOINTMENT_SELECT} WHERE a.id = $1`, [appointmentId]);
       res.status(201).json({ appointment: formatAppointment(full.rows[0]) });
+    } catch (err) {
+      await client.query("ROLLBACK");
+      throw err;
+    } finally {
+      client.release();
+    }
+  })
+);
+
+router.patch(
+  "/:id/reschedule",
+  requireAuth,
+  requireRole("doctor"),
+  asyncHandler(async (req: AuthRequest, res) => {
+    const parsed = doctorRescheduleSchema.safeParse(req.body);
+    if (!parsed.success) {
+      res.status(400).json({ error: "Validation failed", details: parsed.error.flatten() });
+      return;
+    }
+
+    const scheduledAt = new Date(parsed.data.scheduledAt);
+    if (Number.isNaN(scheduledAt.getTime())) {
+      res.status(400).json({ error: "Invalid scheduledAt datetime" });
+      return;
+    }
+    if (scheduledAt <= new Date()) {
+      res.status(400).json({ error: "Cannot reschedule to a past time" });
+      return;
+    }
+
+    const doctorProfileId = await getDoctorProfileId(req.user!.sub);
+    if (!doctorProfileId) {
+      res.status(404).json({ error: "Doctor profile not found" });
+      return;
+    }
+
+    const appointmentResult = await pool.query<{
+      id: string;
+      doctor_id: string;
+      availability_slot_id: string | null;
+      status: string;
+      patient_user_id: string;
+      doctor_user_id: string;
+      doctor_first_name: string;
+      doctor_last_name: string;
+      patient_first_name: string;
+      patient_last_name: string;
+    }>(
+      `SELECT
+         a.id,
+         a.doctor_id,
+         a.availability_slot_id,
+         a.status,
+         pu.id AS patient_user_id,
+         du.id AS doctor_user_id,
+         dp.first_name AS doctor_first_name,
+         dp.last_name AS doctor_last_name,
+         pp.first_name AS patient_first_name,
+         pp.last_name AS patient_last_name
+       FROM appointments a
+       JOIN patient_profiles pp ON pp.id = a.patient_id
+       JOIN users pu ON pu.id = pp.user_id
+       JOIN doctor_profiles dp ON dp.id = a.doctor_id
+       JOIN users du ON du.id = dp.user_id
+       WHERE a.id = $1`,
+      [req.params.id]
+    );
+
+    const appointment = appointmentResult.rows[0];
+    if (!appointment) {
+      res.status(404).json({ error: "Appointment not found" });
+      return;
+    }
+    if (appointment.doctor_id !== doctorProfileId) {
+      res.status(403).json({ error: "Forbidden" });
+      return;
+    }
+    if (appointment.status === "cancelled") {
+      res.status(400).json({ error: "Cannot reschedule a cancelled appointment" });
+      return;
+    }
+
+    const client = await pool.connect();
+    try {
+      await client.query("BEGIN");
+
+      const slotResult = await client.query<{
+        id: string;
+        starts_at: Date;
+        ends_at: Date;
+        is_booked: boolean;
+      }>(
+        `SELECT id, starts_at, ends_at, is_booked
+         FROM availability_slots
+         WHERE doctor_id = $1 AND starts_at = $2
+         FOR UPDATE`,
+        [appointment.doctor_id, scheduledAt]
+      );
+
+      const newSlot = slotResult.rows[0];
+      if (!newSlot) {
+        await client.query("ROLLBACK");
+        res.status(404).json({ error: "No available slot at the selected time" });
+        return;
+      }
+      if (
+        newSlot.is_booked &&
+        newSlot.id !== appointment.availability_slot_id
+      ) {
+        await client.query("ROLLBACK");
+        res.status(409).json({ error: "Slot is no longer available" });
+        return;
+      }
+
+      if (
+        appointment.availability_slot_id &&
+        appointment.availability_slot_id !== newSlot.id
+      ) {
+        await client.query(
+          `UPDATE availability_slots SET is_booked = FALSE, updated_at = NOW() WHERE id = $1`,
+          [appointment.availability_slot_id]
+        );
+      }
+
+      if (newSlot.id !== appointment.availability_slot_id) {
+        await client.query(
+          `UPDATE availability_slots SET is_booked = TRUE, updated_at = NOW() WHERE id = $1`,
+          [newSlot.id]
+        );
+      }
+
+      await client.query(
+        `UPDATE appointments
+         SET
+           availability_slot_id = $2,
+           scheduled_start = $3,
+           scheduled_end = $4,
+           updated_at = NOW()
+         WHERE id = $1`,
+        [appointment.id, newSlot.id, newSlot.starts_at, newSlot.ends_at]
+      );
+
+      const when = formatAppTzDisplay(newSlot.starts_at);
+      const doctorName = `Dr. ${appointment.doctor_first_name} ${appointment.doctor_last_name}`;
+      const patientName = `${appointment.patient_first_name} ${appointment.patient_last_name}`;
+
+      await createRescheduleNotifications(
+        client,
+        appointment.id,
+        appointment.patient_user_id,
+        appointment.doctor_user_id,
+        when,
+        doctorName,
+        patientName
+      );
+
+      await client.query("COMMIT");
+
+      const full = await pool.query(`${APPOINTMENT_SELECT} WHERE a.id = $1`, [appointment.id]);
+      res.json({ appointment: formatAppointment(full.rows[0]) });
     } catch (err) {
       await client.query("ROLLBACK");
       throw err;
