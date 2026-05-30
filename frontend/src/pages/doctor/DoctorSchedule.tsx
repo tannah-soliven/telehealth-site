@@ -106,12 +106,13 @@ export default function DoctorSchedulePage() {
           {loading ? (
             <p className="text-sm text-muted-foreground">Loading schedule…</p>
           ) : (
-            <table className="w-full min-w-[640px] border-collapse text-sm">
+            <table className="w-full min-w-[700px] border-collapse table-fixed text-sm">
               <thead>
                 <tr>
-                  <th className="p-2 text-left font-medium text-muted-foreground">Time</th>
+                  {/* Fixed column width allocations to enforce uniform square slots */}
+                  <th className="w-[9%] p-2 text-left font-medium text-muted-foreground">Time</th>
                   {DAY_LABELS.map((d) => (
-                    <th key={d} className="p-2 text-center font-medium">
+                    <th key={d} className="w-[13%] p-2 text-center font-medium">
                       {d}
                     </th>
                   ))}
@@ -120,7 +121,7 @@ export default function DoctorSchedulePage() {
               <tbody>
                 {HOURS.map((hour) => (
                   <tr key={hour}>
-                    <td className="p-2 text-muted-foreground">{formatHour(hour)}</td>
+                    <td className="p-2 text-muted-foreground whitespace-nowrap">{formatHour(hour)}</td>
                     {DAY_LABELS.map((_, day) => {
                       const available = slots.get(slotKey(day, hour)) ?? false;
                       return (
@@ -129,10 +130,10 @@ export default function DoctorSchedulePage() {
                             type="button"
                             aria-label={`${DAY_LABELS[day]} ${formatHour(hour)} ${available ? "available" : "unavailable"}`}
                             className={cn(
-                              "h-10 w-full rounded-md border transition-colors",
+                              "h-10 w-full rounded-md border transition-colors cursor-pointer",
                               available
-                                ? "border-primary bg-primary/15 hover:bg-primary/25"
-                                : "border-input bg-muted/50 hover:bg-muted"
+                                ? "border-emerald-500 bg-emerald-100 dark:bg-emerald-950/50 hover:bg-emerald-200 dark:hover:bg-emerald-900/50"
+                                : "border-input bg-muted/60 hover:bg-muted"
                             )}
                             onClick={() => toggle(day, hour)}
                           />
@@ -145,8 +146,10 @@ export default function DoctorSchedulePage() {
             </table>
           )}
 
-          {error ? <p className="text-sm text-destructive">{error}</p> : null}
-          {message ? <p className="text-sm text-green-600">{message}</p> : null}
+          <div className="pt-2 space-y-2">
+            {error ? <p className="text-sm font-medium text-destructive">{error}</p> : null}
+            {message ? <p className="text-sm font-medium text-emerald-600 dark:text-emerald-400">{message}</p> : null}
+          </div>
 
           <Button onClick={save} disabled={saving || loading}>
             {saving ? "Saving…" : "Save schedule"}

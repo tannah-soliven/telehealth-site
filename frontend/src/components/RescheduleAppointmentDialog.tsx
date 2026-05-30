@@ -92,7 +92,7 @@ export function RescheduleAppointmentDialog({
               Reschedule appointment
             </h2>
             <p className="text-sm text-muted-foreground">
-              {appointment.patientName ?? "Patient"} · currently{" "}
+              {appointment.patientName ?? "Patient"} · Currently{" "}
               {formatDateTime(appointment.scheduledStart)}
             </p>
           </div>

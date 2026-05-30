@@ -324,7 +324,7 @@ router.post(
 router.patch(
   "/:id/reschedule",
   requireAuth,
-  requireRole("doctor"),
+  // 1. REMOVED requireRole("doctor") here so patients can hit this endpoint
   asyncHandler(async (req: AuthRequest, res) => {
     const parsed = doctorRescheduleSchema.safeParse(req.body);
     if (!parsed.success) {
@@ -339,12 +339,6 @@ router.patch(
     }
     if (scheduledAt <= new Date()) {
       res.status(400).json({ error: "Cannot reschedule to a past time" });
-      return;
-    }
-
-    const doctorProfileId = await getDoctorProfileId(req.user!.sub);
-    if (!doctorProfileId) {
-      res.status(404).json({ error: "Doctor profile not found" });
       return;
     }
 
@@ -385,10 +379,16 @@ router.patch(
       res.status(404).json({ error: "Appointment not found" });
       return;
     }
-    if (appointment.doctor_id !== doctorProfileId) {
+
+    // 2. UPDATED SECURITY CHECK: Ensure user is EITHER the assigned doctor OR the assigned patient
+    const isPatient = req.user!.role === "patient" && req.user!.sub === appointment.patient_user_id;
+    const isDoctor = req.user!.role === "doctor" && req.user!.sub === appointment.doctor_user_id;
+    
+    if (!isPatient && !isDoctor) {
       res.status(403).json({ error: "Forbidden" });
       return;
     }
+
     if (appointment.status === "cancelled") {
       res.status(400).json({ error: "Cannot reschedule a cancelled appointment" });
       return;

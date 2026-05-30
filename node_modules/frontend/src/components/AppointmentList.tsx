@@ -10,6 +10,7 @@ type AppointmentListProps = {
   showPatient?: boolean;
   showDoctor?: boolean;
   onCancel?: (id: string) => void;
+  onReschedule?: (appointment: Appointment) => void; // Added type definition
 };
 
 export function AppointmentList({
@@ -17,7 +18,8 @@ export function AppointmentList({
   emptyMessage,
   showPatient = false,
   showDoctor = true,
-  onCancel
+  onCancel,
+  onReschedule // Added destructured prop parameter
 }: AppointmentListProps) {
   if (appointments.length === 0) {
     return <p className="text-sm text-muted-foreground">{emptyMessage}</p>;
@@ -41,6 +43,7 @@ export function AppointmentList({
             <CardContent className="space-y-3 text-sm">
               <p>{formatDateTime(appt.scheduledStart)}</p>
               <p className="capitalize text-muted-foreground">Status: {appt.status}</p>
+              
               {appt.status === "scheduled" ? (
                 <div className="flex flex-wrap gap-2">
                   <Button variant="outline" size="sm" asChild>
@@ -48,6 +51,18 @@ export function AppointmentList({
                       Join video call
                     </a>
                   </Button>
+
+                  {/* Reschedule Button rendered only if action handler prop is supplied */}
+                  {onReschedule ? (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => onReschedule(appt)}
+                    >
+                      Reschedule
+                    </Button>
+                  ) : null}
+
                   {onCancel ? (
                     <Button
                       variant="destructive"
