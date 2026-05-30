@@ -83,3 +83,14 @@ export type PatientRecordsResponse = {
   } | null;
   records: MedicalRecord[];
 };
+
+export type DoctorPatientSummary = {
+  id: string;
+  firstName: string;
+  lastName: string;
+  name: string;
+  email: string;
+  dateOfBirth: string | null;
+  mostRecentAppointment: string | null;
+  matchReasons: string[];
+};

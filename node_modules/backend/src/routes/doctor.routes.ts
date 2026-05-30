@@ -4,6 +4,7 @@ import { z } from "zod";
 import { pool } from "../db/pool.js";
 import { defaultWeeklyGrid, HOURS, syncAvailabilitySlots, type WeeklySlot } from "../lib/sync-availability.js";
 import { asyncHandler } from "../lib/async-handler.js";
+import { formatAppTzIso } from "../lib/timezone.js";
 import { requireAuth, requireRole, type AuthRequest } from "../middleware/auth.middleware.js";
 
 const router = Router();
@@ -49,6 +50,108 @@ const updateProfileSchema = z.object({
 });
 
 router.use(requireAuth, requireRole("doctor"));
+
+router.get(
+  "/patients",
+  asyncHandler(async (req: AuthRequest, res) => {
+    const search = typeof req.query.search === "string" ? req.query.search.trim() : "";
+    const pattern = search.length > 0 ? `%${search}%` : null;
+
+    const result = await pool.query(
+      `SELECT
+         p.id,
+         p.first_name,
+         p.last_name,
+         u.email,
+         p.date_of_birth,
+         MAX(a.scheduled_start) AS most_recent_appointment,
+         bool_or(
+           $1::text IS NOT NULL
+           AND (
+             p.first_name ILIKE $1
+             OR p.last_name ILIKE $1
+             OR (p.first_name || ' ' || p.last_name) ILIKE $1
+           )
+         ) AS matched_name,
+         bool_or($1::text IS NOT NULL AND u.email ILIKE $1) AS matched_email,
+         bool_or(
+           $1::text IS NOT NULL
+           AND p.date_of_birth IS NOT NULL
+           AND (
+             to_char(p.date_of_birth, 'YYYY-MM-DD') ILIKE $1
+             OR to_char(p.date_of_birth, 'Mon DD, YYYY') ILIKE $1
+             OR to_char(p.date_of_birth, 'FMMonth DD, YYYY') ILIKE $1
+             OR to_char(p.date_of_birth, 'DD Mon YYYY') ILIKE $1
+           )
+         ) AS matched_birthday,
+         bool_or($1::text IS NOT NULL AND p.weight_kg::text ILIKE $1) AS matched_weight,
+         bool_or($1::text IS NOT NULL AND p.height_cm::text ILIKE $1) AS matched_height,
+         bool_or($1::text IS NOT NULL AND p.phone ILIKE $1) AS matched_contact,
+         bool_or($1::text IS NOT NULL AND p.medical_history ILIKE $1) AS matched_medical_history,
+         bool_or($1::text IS NOT NULL AND cn.findings ILIKE $1) AS matched_findings,
+         bool_or($1::text IS NOT NULL AND cn.prescription ILIKE $1) AS matched_prescription
+       FROM patient_profiles p
+       JOIN users u ON u.id = p.user_id
+       JOIN appointments a ON a.patient_id = p.id
+       LEFT JOIN consultation_notes cn ON cn.appointment_id = a.id
+       WHERE (
+         $1::text IS NULL
+         OR p.first_name ILIKE $1
+         OR p.last_name ILIKE $1
+         OR u.email ILIKE $1
+         OR (p.first_name || ' ' || p.last_name) ILIKE $1
+         OR (
+           p.date_of_birth IS NOT NULL
+           AND (
+             to_char(p.date_of_birth, 'YYYY-MM-DD') ILIKE $1
+             OR to_char(p.date_of_birth, 'Mon DD, YYYY') ILIKE $1
+             OR to_char(p.date_of_birth, 'FMMonth DD, YYYY') ILIKE $1
+             OR to_char(p.date_of_birth, 'DD Mon YYYY') ILIKE $1
+           )
+         )
+         OR p.weight_kg::text ILIKE $1
+         OR p.height_cm::text ILIKE $1
+         OR p.phone ILIKE $1
+         OR p.medical_history ILIKE $1
+         OR cn.findings ILIKE $1
+         OR cn.prescription ILIKE $1
+       )
+       GROUP BY p.id, p.first_name, p.last_name, u.email, p.date_of_birth
+       ORDER BY most_recent_appointment DESC, p.last_name ASC, p.first_name ASC`,
+      [pattern]
+    );
+
+    res.json({
+      patients: result.rows.map((row) => {
+        const matchReasons: string[] = [];
+        if (row.matched_name) matchReasons.push("name");
+        if (row.matched_email) matchReasons.push("email");
+        if (row.matched_birthday) matchReasons.push("birthday");
+        if (row.matched_weight) matchReasons.push("weight");
+        if (row.matched_height) matchReasons.push("height");
+        if (row.matched_contact) matchReasons.push("contact");
+        if (row.matched_medical_history) matchReasons.push("medical history");
+        if (row.matched_findings) matchReasons.push("consultation notes");
+        if (row.matched_prescription) matchReasons.push("prescription");
+
+        return {
+          id: row.id,
+          firstName: row.first_name,
+          lastName: row.last_name,
+          name: `${row.first_name} ${row.last_name}`,
+          email: row.email,
+          dateOfBirth: row.date_of_birth
+            ? new Date(row.date_of_birth).toISOString().slice(0, 10)
+            : null,
+          mostRecentAppointment: row.most_recent_appointment
+            ? formatAppTzIso(new Date(row.most_recent_appointment))
+            : null,
+          matchReasons
+        };
+      })
+    });
+  })
+);
 
 router.get(
   "/availability",

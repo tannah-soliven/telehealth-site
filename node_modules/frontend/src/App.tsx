@@ -9,12 +9,15 @@ import DoctorAppointmentsPage from "@/pages/doctor/DoctorAppointments";
 import DoctorDashboardHome from "@/pages/doctor/DoctorDashboardHome";
 import DoctorProfilePage from "@/pages/doctor/DoctorProfile";
 import DoctorSchedulePage from "@/pages/doctor/DoctorSchedule";
+import DoctorRecordsPage from "@/pages/doctor/DoctorPatientRecords";
+
 import DoctorDetailPage from "@/pages/patient/DoctorDetail";
 import FindDoctorsPage from "@/pages/patient/FindDoctors";
 import PatientAppointmentsPage from "@/pages/patient/PatientAppointments";
 import PatientDashboardHome from "@/pages/patient/PatientDashboardHome";
 import MedicalRecordsPage from "@/pages/patient/MedicalRecords";
 import PatientProfilePage from "@/pages/patient/PatientProfile";
+
 
 const patientNav = [
   { label: "Dashboard", to: "/patient/dashboard" },
@@ -26,7 +29,8 @@ const patientNav = [
 const doctorNav = [
   { label: "Dashboard", to: "/doctor/dashboard" },
   { label: "My Schedule", to: "/doctor/schedule" },
-  { label: "Upcoming Appointments", to: "/doctor/appointments" }
+  { label: "Upcoming Appointments", to: "/doctor/appointments" },
+  { label: "Patient Records", to: "/doctor/records" }
 ];
 
 function HomeRedirect() {
@@ -79,6 +83,7 @@ export default function App() {
             <Route path="/doctor/schedule" element={<DoctorSchedulePage />} />
             <Route path="/doctor/appointments" element={<DoctorAppointmentsPage />} />
             <Route path="/doctor/profile" element={<DoctorProfilePage />} />
+            <Route path="/doctor/records" element={<DoctorRecordsPage />} />
           </Route>
         </Route>
 

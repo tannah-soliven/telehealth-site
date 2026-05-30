@@ -45,6 +45,18 @@ export default function DoctorAppointmentsPage() {
     }
   }
 
+  async function reschedule(id: string) {
+    try {
+      await apiFetch(`/api/appointments/${id}`, {
+        method: "PATCH",
+        body: JSON.stringify({ action: "reschedule" })
+      });
+      await load();
+    } catch (e) {
+      setError(e instanceof ApiError ? e.message : "Failed to reschedule");
+    }
+  }
+
   return (
     <div className="space-y-6">
       <div>
@@ -81,6 +93,11 @@ export default function DoctorAppointmentsPage() {
                             Join video call
                           </a>
                         </Button>
+                        <Button variant="outline" size="sm" asChild>
+                          <a target="_blank" rel="noreferrer" onClick={() => reschedule(appt.id)}>
+                            Reschedule
+                          </a>
+                        </Button>
                         <Button
                           variant="destructive"
                           size="sm"
@@ -88,6 +105,7 @@ export default function DoctorAppointmentsPage() {
                         >
                           Cancel
                         </Button>
+
                       </>
                     ) : null}
 
