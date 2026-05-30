@@ -37,3 +37,8 @@ export function dashboardPathForRole(role: UserRole): string {
   if (role === "doctor") return "/doctor/dashboard";
   return "/patient/dashboard";
 }
+
+export function profilePathForRole(role: UserRole): string {
+  if (role === "doctor") return "/doctor/profile";
+  return "/patient/profile";
+}

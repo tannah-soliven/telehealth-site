@@ -23,7 +23,7 @@ import {
   SelectValue
 } from "@/components/ui/select";
 import { ApiError, apiFetch } from "@/lib/api";
-import { dashboardPathForRole, setAuth, type AuthUser } from "@/lib/auth";
+import { profilePathForRole, setAuth, type AuthUser } from "@/lib/auth";
 
 const registerSchema = z.object({
   email: z.string().email("Enter a valid email"),
@@ -55,7 +55,7 @@ export default function RegisterPage() {
         body: JSON.stringify(values)
       });
       setAuth(data.token, data.user);
-      navigate(dashboardPathForRole(data.user.role), { replace: true });
+      navigate(profilePathForRole(data.user.role), { replace: true });
     } catch (e) {
       setServerError(e instanceof ApiError ? e.message : "Registration failed");
     }

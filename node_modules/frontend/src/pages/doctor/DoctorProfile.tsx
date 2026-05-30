@@ -1,6 +1,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
+import { useNavigate } from "react-router-dom";
 import { z } from "zod";
 
 import { Button } from "@/components/ui/button";
@@ -16,26 +17,23 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { ProfileAvatarPicker } from "@/components/ProfileAvatarPicker";
+import { useProfileCompletion } from "@/contexts/ProfileCompletionContext";
 import { ApiError, apiFetch } from "@/lib/api";
+import { dashboardPathForRole } from "@/lib/auth";
+import { isDoctorProfileComplete, type DoctorProfileData } from "@/lib/profile";
 
 const profileSchema = z.object({
   firstName: z.string().min(1, "First name is required"),
   lastName: z.string().min(1, "Last name is required"),
-  specialization: z.string().optional(),
-  bio: z.string().optional()
+  specialization: z.string().min(1, "Specialization is required"),
+  bio: z.string().min(1, "Bio is required")
 });
 
 type ProfileValues = z.infer<typeof profileSchema>;
 
-type DoctorProfile = {
-  firstName: string;
-  lastName: string;
-  specialization: string | null;
-  bio: string | null;
-  avatarUrl: string | null;
-};
-
 export default function DoctorProfilePage() {
+  const navigate = useNavigate();
+  const { refreshProfile, profileComplete } = useProfileCompletion();
   const [loadError, setLoadError] = useState<string | null>(null);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
@@ -53,7 +51,7 @@ export default function DoctorProfilePage() {
   useEffect(() => {
     async function load() {
       try {
-        const data = await apiFetch<DoctorProfile>("/api/doctor/profile");
+        const data = await apiFetch<DoctorProfileData>("/api/doctor/profile");
         setAvatarUrl(data.avatarUrl ?? null);
         form.reset({
           firstName: data.firstName,
@@ -71,16 +69,24 @@ export default function DoctorProfilePage() {
   async function onSubmit(values: ProfileValues) {
     setSaveMessage(null);
     try {
-      await apiFetch<DoctorProfile>("/api/doctor/profile", {
+      const data = await apiFetch<DoctorProfileData>("/api/doctor/profile", {
         method: "PUT",
         body: JSON.stringify({
           firstName: values.firstName,
           lastName: values.lastName,
-          specialization: values.specialization || null,
-          bio: values.bio || null
+          specialization: values.specialization,
+          bio: values.bio
         })
       });
-      setSaveMessage("Profile saved successfully.");
+
+      if (isDoctorProfileComplete(data)) {
+        await refreshProfile();
+        setSaveMessage("Profile saved successfully.");
+        navigate(dashboardPathForRole("doctor"), { replace: true });
+      } else {
+        await refreshProfile();
+        setSaveMessage("Please fill in all required fields.");
+      }
     } catch (e) {
       setSaveMessage(e instanceof ApiError ? e.message : "Failed to save profile");
     }
@@ -90,7 +96,11 @@ export default function DoctorProfilePage() {
     <Card>
       <CardHeader>
         <CardTitle>Edit profile</CardTitle>
-        <CardDescription>Update your professional information</CardDescription>
+        <CardDescription>
+          {profileComplete
+            ? "Update your professional information"
+            : "Complete all required fields to access the doctor portal"}
+        </CardDescription>
       </CardHeader>
       <CardContent>
         {loadError ? <p className="mb-4 text-sm text-destructive">{loadError}</p> : null}

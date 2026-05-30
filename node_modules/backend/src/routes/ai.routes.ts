@@ -4,6 +4,7 @@ import { z } from "zod";
 
 import { pool } from "../db/pool.js";
 import { asyncHandler } from "../lib/async-handler.js";
+import { DOCTOR_PROFILE_COMPLETE_SQL } from "../lib/doctor-profile-complete.js";
 import { requireAuth, requireRole } from "../middleware/auth.middleware.js";
 
 const router = Router();
@@ -132,8 +133,8 @@ router.post(
 
     const specialtyResult = await pool.query<{ specialty: string }>(
       `SELECT DISTINCT specialty
-       FROM doctor_profiles
-       WHERE specialty IS NOT NULL AND TRIM(specialty) <> ''
+       FROM doctor_profiles d
+       WHERE ${DOCTOR_PROFILE_COMPLETE_SQL}
        ORDER BY specialty ASC`
     );
     const specialtyList =
@@ -171,7 +172,8 @@ router.post(
          )::int AS available_slot_count
        FROM doctor_profiles d
        LEFT JOIN availability_slots s ON s.doctor_id = d.id
-       WHERE d.specialty ILIKE ANY($1::text[])
+       WHERE ${DOCTOR_PROFILE_COMPLETE_SQL}
+         AND d.specialty ILIKE ANY($1::text[])
        GROUP BY d.id
        ORDER BY available_slot_count DESC, d.last_name`,
       [patterns]

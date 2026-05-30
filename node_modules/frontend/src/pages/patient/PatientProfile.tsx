@@ -1,6 +1,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
+import { useNavigate } from "react-router-dom";
 import { z } from "zod";
 
 import { Button } from "@/components/ui/button";
@@ -16,33 +17,32 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { ProfileAvatarPicker } from "@/components/ProfileAvatarPicker";
+import { useProfileCompletion } from "@/contexts/ProfileCompletionContext";
 import { ApiError, apiFetch } from "@/lib/api";
+import { dashboardPathForRole } from "@/lib/auth";
+import { isPatientProfileComplete, type PatientProfileData } from "@/lib/profile";
 
 const profileSchema = z.object({
   firstName: z.string().min(1, "First name is required"),
   lastName: z.string().min(1, "Last name is required"),
-  dateOfBirth: z.string().optional(),
-  weightKg: z.string().optional(),
-  heightCm: z.string().optional(),
-  phone: z.string().optional(),
+  dateOfBirth: z.string().min(1, "Date of birth is required"),
+  weightKg: z
+    .string()
+    .min(1, "Weight is required")
+    .refine((v) => Number(v) > 0, "Enter a valid weight"),
+  heightCm: z
+    .string()
+    .min(1, "Height is required")
+    .refine((v) => Number(v) > 0, "Enter a valid height"),
+  phone: z.string().min(1, "Contact phone is required"),
   medicalHistory: z.string().optional()
 });
 
 type ProfileValues = z.infer<typeof profileSchema>;
 
-type PatientProfile = {
-  firstName: string;
-  lastName: string;
-  dateOfBirth: string | null;
-  weightKg: number | null;
-  heightCm: number | null;
-  phone: string | null;
-  medicalHistory: string | null;
-  email?: string;
-  avatarUrl: string | null;
-};
-
 export default function PatientProfilePage() {
+  const navigate = useNavigate();
+  const { refreshProfile, profileComplete } = useProfileCompletion();
   const [loadError, setLoadError] = useState<string | null>(null);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
@@ -63,7 +63,7 @@ export default function PatientProfilePage() {
   useEffect(() => {
     async function load() {
       try {
-        const data = await apiFetch<PatientProfile>("/api/patient/profile");
+        const data = await apiFetch<PatientProfileData>("/api/patient/profile");
         setAvatarUrl(data.avatarUrl ?? null);
         form.reset({
           firstName: data.firstName,
@@ -84,19 +84,27 @@ export default function PatientProfilePage() {
   async function onSubmit(values: ProfileValues) {
     setSaveMessage(null);
     try {
-      await apiFetch<PatientProfile>("/api/patient/profile", {
+      const data = await apiFetch<PatientProfileData>("/api/patient/profile", {
         method: "PUT",
         body: JSON.stringify({
           firstName: values.firstName,
           lastName: values.lastName,
-          dateOfBirth: values.dateOfBirth || null,
-          weightKg: values.weightKg ? Number(values.weightKg) : null,
-          heightCm: values.heightCm ? Number(values.heightCm) : null,
-          phone: values.phone || null,
+          dateOfBirth: values.dateOfBirth,
+          weightKg: Number(values.weightKg),
+          heightCm: Number(values.heightCm),
+          phone: values.phone,
           medicalHistory: values.medicalHistory || null
         })
       });
-      setSaveMessage("Profile saved successfully.");
+
+      if (isPatientProfileComplete(data)) {
+        await refreshProfile();
+        setSaveMessage("Profile saved successfully.");
+        navigate(dashboardPathForRole("patient"), { replace: true });
+      } else {
+        await refreshProfile();
+        setSaveMessage("Please fill in all required fields.");
+      }
     } catch (e) {
       setSaveMessage(e instanceof ApiError ? e.message : "Failed to save profile");
     }
@@ -106,7 +114,11 @@ export default function PatientProfilePage() {
     <Card>
       <CardHeader>
         <CardTitle>Edit profile</CardTitle>
-        <CardDescription>Update your personal and medical information</CardDescription>
+        <CardDescription>
+          {profileComplete
+            ? "Update your personal and medical information"
+            : "Complete all required fields to access the patient portal"}
+        </CardDescription>
       </CardHeader>
       <CardContent>
         {loadError ? <p className="mb-4 text-sm text-destructive">{loadError}</p> : null}
@@ -167,7 +179,7 @@ export default function PatientProfilePage() {
                 <FormItem>
                   <FormLabel>Contact phone</FormLabel>
                   <FormControl>
-                    <Input type="tel" placeholder="+1 555 000 0000" {...field} />
+                    <Input type="tel" placeholder="+63 919 000 0000" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

@@ -1,9 +1,10 @@
 import { LogOut, Menu, X } from "lucide-react";
 import { useState } from "react";
-import { Link, NavLink, Outlet, useNavigate } from "react-router-dom";
+import { Link, NavLink, Navigate, Outlet, useLocation, useNavigate } from "react-router-dom";
 
 import { NotificationBell } from "@/components/NotificationBell";
 import { Button } from "@/components/ui/button";
+import { ProfileCompletionProvider, useProfileCompletion } from "@/contexts/ProfileCompletionContext";
 import { clearAuth, getUser } from "@/lib/auth";
 import { cn } from "@/lib/utils";
 
@@ -18,10 +19,15 @@ type DashboardLayoutProps = {
   profilePath: string;
 };
 
-export function DashboardLayout({ title, navItems, profilePath }: DashboardLayoutProps) {
+function DashboardLayoutInner({ title, navItems, profilePath }: DashboardLayoutProps) {
   const user = getUser();
   const navigate = useNavigate();
+  const location = useLocation();
+  const { loading, profileComplete } = useProfileCompletion();
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+
+  const isProfileRoute = location.pathname === profilePath;
+  const navLocked = !loading && !profileComplete;
 
   function logout() {
     clearAuth();
@@ -32,6 +38,10 @@ export function DashboardLayout({ title, navItems, profilePath }: DashboardLayou
     setMobileNavOpen(false);
   }
 
+  if (!loading && navLocked && !isProfileRoute) {
+    return <Navigate to={profilePath} replace />;
+  }
+
   const navContent = (
     <>
       <div className="border-b p-6">
@@ -40,21 +50,31 @@ export function DashboardLayout({ title, navItems, profilePath }: DashboardLayou
         {user ? <p className="mt-2 truncate text-sm text-muted-foreground">{user.email}</p> : null}
       </div>
       <nav className="flex flex-1 flex-col gap-1 p-4">
-        {navItems.map((item) => (
-          <NavLink
-            key={item.to}
-            to={item.to}
-            onClick={closeMobileNav}
-            className={({ isActive }) =>
-              cn(
-                "rounded-md px-3 py-2 text-sm font-medium transition-colors hover:bg-accent",
-                isActive && "bg-accent text-accent-foreground"
-              )
-            }
-          >
-            {item.label}
-          </NavLink>
-        ))}
+        {navItems.map((item) =>
+          navLocked ? (
+            <span
+              key={item.to}
+              className="cursor-not-allowed rounded-md px-3 py-2 text-sm font-medium text-muted-foreground/40"
+              aria-disabled="true"
+            >
+              {item.label}
+            </span>
+          ) : (
+            <NavLink
+              key={item.to}
+              to={item.to}
+              onClick={closeMobileNav}
+              className={({ isActive }) =>
+                cn(
+                  "rounded-md px-3 py-2 text-sm font-medium transition-colors hover:bg-accent",
+                  isActive && "bg-accent text-accent-foreground"
+                )
+              }
+            >
+              {item.label}
+            </NavLink>
+          )
+        )}
         <NavLink
           to={profilePath}
           onClick={closeMobileNav}
@@ -118,22 +138,38 @@ export function DashboardLayout({ title, navItems, profilePath }: DashboardLayou
                 <Menu className="h-5 w-5" />
               </Button>
               <div>
-              <p className="text-sm text-muted-foreground md:hidden">{title}</p>
-              <h2 className="text-lg font-semibold md:hidden">Dashboard</h2>
+                <p className="text-sm text-muted-foreground md:hidden">{title}</p>
+                <h2 className="text-lg font-semibold md:hidden">Dashboard</h2>
               </div>
             </div>
             <div className="flex items-center gap-3">
-              <NotificationBell />
+              {!navLocked ? <NotificationBell /> : null}
               <Link to={profilePath} className="text-sm text-primary hover:underline md:hidden">
                 Profile
               </Link>
             </div>
           </header>
           <main className="flex-1 p-4 md:p-8">
+            {navLocked ? (
+              <div
+                role="alert"
+                className="mb-6 rounded-md border border-amber-500/50 bg-amber-500/10 px-4 py-3 text-sm text-amber-900 dark:text-amber-200"
+              >
+                Please complete your profile before continuing
+              </div>
+            ) : null}
             <Outlet />
           </main>
         </div>
       </div>
     </div>
+  );
+}
+
+export function DashboardLayout(props: DashboardLayoutProps) {
+  return (
+    <ProfileCompletionProvider>
+      <DashboardLayoutInner {...props} />
+    </ProfileCompletionProvider>
   );
 }

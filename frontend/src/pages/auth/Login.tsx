@@ -16,7 +16,8 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { ApiError, apiFetch } from "@/lib/api";
-import { dashboardPathForRole, setAuth, type AuthUser } from "@/lib/auth";
+import { dashboardPathForRole, profilePathForRole, setAuth, type AuthUser } from "@/lib/auth";
+import { fetchProfileForRole } from "@/lib/profile";
 
 const loginSchema = z.object({
   email: z.string().email("Enter a valid email"),
@@ -47,7 +48,16 @@ export default function LoginPage() {
         body: JSON.stringify(values)
       });
       setAuth(data.token, data.user);
-      navigate(dashboardPathForRole(data.user.role), { replace: true });
+      try {
+        const { profile, complete } = await fetchProfileForRole(data.user.role);
+        const path = complete
+          ? dashboardPathForRole(data.user.role)
+          : profilePathForRole(data.user.role);
+        void profile;
+        navigate(path, { replace: true });
+      } catch {
+        navigate(profilePathForRole(data.user.role), { replace: true });
+      }
     } catch (e) {
       setServerError(e instanceof ApiError ? e.message : "Login failed");
     }

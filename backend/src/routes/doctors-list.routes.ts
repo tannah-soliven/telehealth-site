@@ -2,6 +2,7 @@ import { Router } from "express";
 
 import { pool } from "../db/pool.js";
 import { asyncHandler } from "../lib/async-handler.js";
+import { DOCTOR_PROFILE_COMPLETE_SQL } from "../lib/doctor-profile-complete.js";
 import { formatAppTzIso } from "../lib/timezone.js";
 import { requireAuth } from "../middleware/auth.middleware.js";
 
@@ -51,7 +52,7 @@ router.get(
          ) AS next_available_at
        FROM doctor_profiles d
        LEFT JOIN availability_slots s ON s.doctor_id = d.id
-       WHERE 1=1 ${specialtyFilter}
+       WHERE ${DOCTOR_PROFILE_COMPLETE_SQL} ${specialtyFilter}
        GROUP BY d.id
        ORDER BY d.last_name, d.first_name`,
       params
@@ -66,8 +67,8 @@ router.get(
   asyncHandler(async (_req, res) => {
     const result = await pool.query<{ specialty: string }>(
       `SELECT DISTINCT specialty
-       FROM doctor_profiles
-       WHERE specialty IS NOT NULL AND specialty <> ''
+       FROM doctor_profiles d
+       WHERE ${DOCTOR_PROFILE_COMPLETE_SQL}
        ORDER BY specialty ASC`
     );
     res.json({ specialties: result.rows.map((r) => r.specialty) });
@@ -81,8 +82,8 @@ router.get(
 
     const doctorResult = await pool.query(
       `SELECT id, first_name, last_name, specialty, bio, license_number
-       FROM doctor_profiles
-       WHERE id = $1`,
+       FROM doctor_profiles d
+       WHERE id = $1 AND ${DOCTOR_PROFILE_COMPLETE_SQL}`,
       [id]
     );
 
