@@ -42,3 +42,32 @@ export async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> 
 
   return data;
 }
+
+export async function uploadProfilePicture(file: File): Promise<{ url: string }> {
+  const token = getToken();
+  const formData = new FormData();
+  formData.append("image", file);
+
+  const headers = new Headers();
+  if (token) {
+    headers.set("Authorization", `Bearer ${token}`);
+  }
+
+  const res = await fetch(buildApiUrl("/api/upload/profile-picture"), {
+    method: "POST",
+    headers,
+    body: formData
+  });
+
+  const data = (await res.json().catch(() => ({}))) as { url?: string; error?: string };
+
+  if (!res.ok) {
+    throw new ApiError(data.error ?? res.statusText, res.status);
+  }
+
+  if (!data.url) {
+    throw new ApiError("Upload succeeded but no URL was returned", 500);
+  }
+
+  return { url: data.url };
+}

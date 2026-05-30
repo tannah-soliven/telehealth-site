@@ -46,7 +46,8 @@ const updateProfileSchema = z.object({
   firstName: z.string().min(1).max(100),
   lastName: z.string().min(1).max(100),
   bio: z.string().max(5000).nullable().optional(),
-  specialization: z.string().max(150).nullable().optional()
+  specialization: z.string().max(150).nullable().optional(),
+  avatarUrl: z.string().url().max(2000).nullable().optional()
 });
 
 router.use(requireAuth, requireRole("doctor"));
@@ -236,6 +237,7 @@ router.get(
          d.last_name,
          d.specialty,
          d.bio,
+         d.avatar_url,
          u.email
        FROM doctor_profiles d
        JOIN users u ON u.id = d.user_id
@@ -255,7 +257,8 @@ router.get(
       firstName: row.first_name,
       lastName: row.last_name,
       specialization: row.specialty,
-      bio: row.bio
+      bio: row.bio,
+      avatarUrl: row.avatar_url
     });
   })
 );
@@ -269,7 +272,7 @@ router.put(
       return;
     }
 
-    const { firstName, lastName, bio, specialization } = parsed.data;
+    const { firstName, lastName, bio, specialization, avatarUrl } = parsed.data;
 
     const result = await pool.query(
       `UPDATE doctor_profiles
@@ -278,10 +281,11 @@ router.put(
          last_name = $3,
          bio = $4,
          specialty = $5,
+         avatar_url = COALESCE($6, avatar_url),
          updated_at = NOW()
        WHERE user_id = $1
-       RETURNING id, first_name, last_name, specialty, bio`,
-      [req.user!.sub, firstName, lastName, bio ?? null, specialization ?? null]
+       RETURNING id, first_name, last_name, specialty, bio, avatar_url`,
+      [req.user!.sub, firstName, lastName, bio ?? null, specialization ?? null, avatarUrl ?? null]
     );
 
     const row = result.rows[0];
@@ -295,7 +299,8 @@ router.put(
       firstName: row.first_name,
       lastName: row.last_name,
       specialization: row.specialty,
-      bio: row.bio
+      bio: row.bio,
+      avatarUrl: row.avatar_url
     });
   })
 );

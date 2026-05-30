@@ -39,6 +39,7 @@ CREATE TABLE IF NOT EXISTS patient_profiles (
   weight_kg  NUMERIC(5, 2),
   height_cm  NUMERIC(5, 2),
   medical_history TEXT,
+  avatar_url    TEXT,
   created_at TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ  NOT NULL DEFAULT NOW()
 );
@@ -51,6 +52,7 @@ CREATE TABLE IF NOT EXISTS doctor_profiles (
   specialty      VARCHAR(150),
   license_number VARCHAR(64) UNIQUE,
   bio            TEXT,
+  avatar_url     TEXT,
   created_at     TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
   updated_at     TIMESTAMPTZ  NOT NULL DEFAULT NOW()
 );

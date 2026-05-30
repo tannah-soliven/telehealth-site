@@ -14,7 +14,8 @@ const updateProfileSchema = z.object({
   weightKg: z.number().positive().max(500).nullable().optional(),
   heightCm: z.number().positive().max(300).nullable().optional(),
   phone: z.string().max(32).nullable().optional(),
-  medicalHistory: z.string().max(10000).nullable().optional()
+  medicalHistory: z.string().max(10000).nullable().optional(),
+  avatarUrl: z.string().url().max(2000).nullable().optional()
 });
 
 router.use(requireAuth, requireRole("patient"));
@@ -32,6 +33,7 @@ router.get(
          p.weight_kg,
          p.height_cm,
          p.medical_history,
+         p.avatar_url,
          u.email
        FROM patient_profiles p
        JOIN users u ON u.id = p.user_id
@@ -56,7 +58,8 @@ router.get(
       phone: row.phone,
       weightKg: row.weight_kg != null ? Number(row.weight_kg) : null,
       heightCm: row.height_cm != null ? Number(row.height_cm) : null,
-      medicalHistory: row.medical_history
+      medicalHistory: row.medical_history,
+      avatarUrl: row.avatar_url
     });
   })
 );
@@ -70,7 +73,7 @@ router.put(
       return;
     }
 
-    const { firstName, lastName, dateOfBirth, weightKg, heightCm, phone, medicalHistory } =
+    const { firstName, lastName, dateOfBirth, weightKg, heightCm, phone, medicalHistory, avatarUrl } =
       parsed.data;
 
     const result = await pool.query(
@@ -83,6 +86,7 @@ router.put(
          height_cm = $6,
          phone = $7,
          medical_history = $8,
+         avatar_url = COALESCE($9, avatar_url),
          updated_at = NOW()
        WHERE user_id = $1
        RETURNING
@@ -93,7 +97,8 @@ router.put(
          phone,
          weight_kg,
          height_cm,
-         medical_history`,
+         medical_history,
+         avatar_url`,
       [
         req.user!.sub,
         firstName,
@@ -102,7 +107,8 @@ router.put(
         weightKg ?? null,
         heightCm ?? null,
         phone ?? null,
-        medicalHistory ?? null
+        medicalHistory ?? null,
+        avatarUrl ?? null
       ]
     );
 
@@ -122,7 +128,8 @@ router.put(
       phone: row.phone,
       weightKg: row.weight_kg != null ? Number(row.weight_kg) : null,
       heightCm: row.height_cm != null ? Number(row.height_cm) : null,
-      medicalHistory: row.medical_history
+      medicalHistory: row.medical_history,
+      avatarUrl: row.avatar_url
     });
   })
 );

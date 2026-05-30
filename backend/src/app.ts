@@ -11,6 +11,7 @@ import doctorsListRouter from "./routes/doctors-list.routes.js";
 import notificationsRouter from "./routes/notifications.routes.js";
 import patientRouter from "./routes/patient.routes.js";
 import patientRecordsRouter from "./routes/patient-records.routes.js";
+import uploadRouter from "./routes/upload.routes.js";
 
 export function createApp() {
   const app = express();
@@ -59,6 +60,7 @@ export function createApp() {
   app.use("/api/notifications", notificationsRouter);
   app.use("/api/consultations", consultationsRouter);
   app.use("/api/patients", patientRecordsRouter);
+  app.use("/api/upload", uploadRouter);
 
   app.use(errorHandler);
 

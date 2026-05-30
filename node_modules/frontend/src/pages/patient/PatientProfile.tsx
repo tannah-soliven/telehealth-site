@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { ProfileAvatarPicker } from "@/components/ProfileAvatarPicker";
 import { ApiError, apiFetch } from "@/lib/api";
 
 const profileSchema = z.object({
@@ -38,11 +39,13 @@ type PatientProfile = {
   phone: string | null;
   medicalHistory: string | null;
   email?: string;
+  avatarUrl: string | null;
 };
 
 export default function PatientProfilePage() {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
 
   const form = useForm<ProfileValues>({
     resolver: zodResolver(profileSchema),
@@ -61,6 +64,7 @@ export default function PatientProfilePage() {
     async function load() {
       try {
         const data = await apiFetch<PatientProfile>("/api/patient/profile");
+        setAvatarUrl(data.avatarUrl ?? null);
         form.reset({
           firstName: data.firstName,
           lastName: data.lastName,
@@ -106,6 +110,15 @@ export default function PatientProfilePage() {
       </CardHeader>
       <CardContent>
         {loadError ? <p className="mb-4 text-sm text-destructive">{loadError}</p> : null}
+        <ProfileAvatarPicker
+          avatarUrl={avatarUrl}
+          firstName={form.watch("firstName")}
+          lastName={form.watch("lastName")}
+          onUploaded={(url) => {
+            setAvatarUrl(url);
+            setSaveMessage("Profile picture updated.");
+          }}
+        />
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-4 md:grid-cols-2">
             <FormField
