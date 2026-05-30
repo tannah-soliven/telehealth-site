@@ -27,7 +27,7 @@ export default function DoctorDashboardHome() {
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle>Doctor workspace</CardTitle>
+          <CardTitle>Doctor Workspace</CardTitle>
           <CardDescription>{user?.email}</CardDescription>
         </CardHeader>
         <CardContent className="text-sm text-muted-foreground">
@@ -37,7 +37,7 @@ export default function DoctorDashboardHome() {
 
       <div className="space-y-3">
         <div className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold">Upcoming appointments</h2>
+          <h2 className="text-lg font-semibold">Upcoming Appointments</h2>
           <Link to="/doctor/appointments" className="text-sm text-primary hover:underline">
             View all
           </Link>

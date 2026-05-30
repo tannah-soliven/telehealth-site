@@ -37,10 +37,73 @@ function groupRecordsByDoctor(records: MedicalRecord[]): DoctorRecordGroup[] {
   });
 }
 
+// Sub-component matching your exact original list item aesthetic
+function AppointmentRecordItem({ record }: { record: MedicalRecord }) {
+  const [isRecordExpanded, setIsRecordExpanded] = useState(false);
+
+  return (
+    <li className="rounded-md border bg-muted/30 p-4 text-sm space-y-3">
+      {/* Clickable Header Row */}
+      <button
+        type="button"
+        className="flex w-full items-center justify-between gap-x-4 gap-y-1 text-muted-foreground focus:outline-none"
+        onClick={() => setIsRecordExpanded(!isRecordExpanded)}
+      >
+        <div className="flex flex-wrap gap-x-4 gap-y-1">
+          <p>
+            <span className="font-medium text-foreground">Date: </span>
+            {formatDate(record.scheduledStart)}
+          </p>
+          <p>
+            <span className="font-medium text-foreground">Time: </span>
+            {formatTime(record.scheduledStart)}
+          </p>
+        </div>
+        <span className="shrink-0 text-xs font-medium select-none">
+          {isRecordExpanded ? "▲ Hide details" : "▼ View details"}
+        </span>
+      </button>
+
+      {/* Expandable Inner Content - Exact Original Styles Restored */}
+      {isRecordExpanded && (
+        <div className="space-y-3 pt-1">
+          {record.note?.findings ? (
+            <div>
+              <p className="font-medium text-xs uppercase tracking-wide text-muted-foreground mb-1">
+                Consultation findings
+              </p>
+              <p className="rounded-md bg-background p-3">
+                {record.note.findings}
+              </p>
+            </div>
+          ) : (
+            <p className="text-muted-foreground">No consultation findings recorded.</p>
+          )}
+
+          {record.note?.prescription ? (
+            <div>
+              <p className="font-medium text-xs uppercase tracking-wide text-muted-foreground mb-1">
+                Prescription
+              </p>
+              <p className="rounded-md bg-background p-3">
+                {record.note.prescription}
+              </p>
+            </div>
+          ) : (
+            <p className="text-muted-foreground">No prescription recorded.</p>
+          )}
+        </div>
+      )}
+    </li>
+  );
+}
+
 export default function MedicalRecordsPage() {
   const [records, setRecords] = useState<MedicalRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  
+  const [expandedDoctorId, setExpandedDoctorId] = useState<string | null>(null);
 
   const doctorGroups = useMemo(() => groupRecordsByDoctor(records), [records]);
 
@@ -98,65 +161,50 @@ export default function MedicalRecordsPage() {
 
       {!loading && !error ? (
         <ul className="space-y-6">
-          {doctorGroups.map((group) => (
-            <li key={group.doctor.id}>
-              <Card>
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-lg">{group.doctor.name}</CardTitle>
-                  <CardDescription>
-                    {group.doctor.specialty ?? "General practice"}
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <ul className="space-y-4">
-                    {group.appointments.map((record) => (
-                      <li
-                        key={record.appointmentId}
-                        className="rounded-md border bg-muted/30 p-4 text-sm space-y-3"
-                      >
-                        <div className="flex flex-wrap gap-x-4 gap-y-1 text-muted-foreground">
-                          <p>
-                            <span className="font-medium text-foreground">Date: </span>
-                            {formatDate(record.scheduledStart)}
-                          </p>
-                          <p>
-                            <span className="font-medium text-foreground">Time: </span>
-                            {formatTime(record.scheduledStart)}
-                          </p>
+          {doctorGroups.map((group) => {
+            const isDoctorExpanded = expandedDoctorId === group.doctor.id;
+            
+            return (
+              <li key={group.doctor.id}>
+                <Card>
+                  <button
+                    type="button"
+                    className="w-full text-left focus:outline-none"
+                    onClick={() =>
+                      setExpandedDoctorId(isDoctorExpanded ? null : group.doctor.id)
+                    }
+                  >
+                    <CardHeader className="pb-3">
+                      <div className="flex items-start justify-between gap-2">
+                        <div>
+                          <CardTitle className="text-lg">{group.doctor.name}</CardTitle>
+                          <CardDescription>
+                            {group.doctor.specialty ?? "General practice"}
+                          </CardDescription>
                         </div>
+                        <span className="shrink-0 text-xs text-muted-foreground mt-1 font-medium">
+                          {isDoctorExpanded ? "▲ Hide" : "▼ View record"}
+                        </span>
+                      </div>
+                    </CardHeader>
+                  </button>
 
-                        {record.note?.findings ? (
-                          <div>
-                            <p className="font-medium text-xs uppercase tracking-wide text-muted-foreground mb-1">
-                              Consultation findings
-                            </p>
-                            <p className="rounded-md bg-background p-3">
-                              {record.note.findings}
-                            </p>
-                          </div>
-                        ) : (
-                          <p className="text-muted-foreground">No consultation findings recorded.</p>
-                        )}
-
-                        {record.note?.prescription ? (
-                          <div>
-                            <p className="font-medium text-xs uppercase tracking-wide text-muted-foreground mb-1">
-                              Prescription
-                            </p>
-                            <p className="rounded-md bg-background p-3">
-                              {record.note.prescription}
-                            </p>
-                          </div>
-                        ) : (
-                          <p className="text-muted-foreground">No prescription recorded.</p>
-                        )}
-                      </li>
-                    ))}
-                  </ul>
-                </CardContent>
-              </Card>
-            </li>
-          ))}
+                  {isDoctorExpanded ? (
+                    <CardContent className="space-y-4">
+                      <ul className="space-y-4">
+                        {group.appointments.map((record) => (
+                          <AppointmentRecordItem 
+                            key={record.appointmentId} 
+                            record={record} 
+                          />
+                        ))}
+                      </ul>
+                    </CardContent>
+                  ) : null}
+                </Card>
+              </li>
+            );
+          })}
         </ul>
       ) : null}
     </div>

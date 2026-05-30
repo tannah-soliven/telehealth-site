@@ -98,10 +98,16 @@ function DashboardLayoutInner({ title, navItems, profilePath }: DashboardLayoutP
   );
 
   return (
-    <div className="min-h-dvh bg-background">
-      <div className="flex min-h-dvh">
-        <aside className="hidden w-64 shrink-0 border-r bg-card md:flex md:flex-col">{navContent}</aside>
+    // 1. Force the layout frame to exactly fill the window and freeze overall window scroll
+    <div className="h-screen w-screen overflow-hidden bg-background">
+      <div className="flex h-full w-full">
+        
+        {/* 2. Lock desktop side panel to max height structure */}
+        <aside className="hidden w-64 shrink-0 border-r bg-card md:flex md:flex-col h-full">
+          {navContent}
+        </aside>
 
+        {/* Backdrop for mobile */}
         <div
           className={cn(
             "fixed inset-0 z-40 bg-black/40 transition-opacity md:hidden",
@@ -110,6 +116,8 @@ function DashboardLayoutInner({ title, navItems, profilePath }: DashboardLayoutP
           onClick={closeMobileNav}
           aria-hidden="true"
         />
+        
+        {/* Mobile Sidebar */}
         <aside
           className={cn(
             "fixed inset-y-0 left-0 z-50 flex w-72 max-w-[85vw] flex-col border-r bg-card transition-transform md:hidden",
@@ -125,8 +133,9 @@ function DashboardLayoutInner({ title, navItems, profilePath }: DashboardLayoutP
           {navContent}
         </aside>
 
-        <div className="flex min-w-0 flex-1 flex-col">
-          <header className="flex items-center justify-between gap-4 border-b px-4 py-3 md:px-8">
+        {/* 3. The inner dashboard workspace gets isolated height layout */}
+        <div className="flex min-w-0 flex-1 flex-col h-full overflow-hidden">
+          <header className="flex h-14 shrink-0 items-center justify-between gap-4 border-b px-4 md:px-8 bg-background">
             <div className="flex items-center gap-2">
               <Button
                 variant="ghost"
@@ -138,8 +147,8 @@ function DashboardLayoutInner({ title, navItems, profilePath }: DashboardLayoutP
                 <Menu className="h-5 w-5" />
               </Button>
               <div>
-                <p className="text-sm text-muted-foreground md:hidden">{title}</p>
-                <h2 className="text-lg font-semibold md:hidden">Dashboard</h2>
+                <p className="text-sm text-muted-foreground md:hidden">TELEHEALTH</p>
+                
               </div>
             </div>
             <div className="flex items-center gap-3">
@@ -149,7 +158,9 @@ function DashboardLayoutInner({ title, navItems, profilePath }: DashboardLayoutP
               </Link>
             </div>
           </header>
-          <main className="flex-1 p-4 md:p-8">
+          
+          {/* 4. Localized Scroll Engine applied right here */}
+          <main className="flex-1 overflow-y-auto p-4 md:p-8">
             {navLocked ? (
               <div
                 role="alert"
@@ -161,6 +172,7 @@ function DashboardLayoutInner({ title, navItems, profilePath }: DashboardLayoutP
             <Outlet />
           </main>
         </div>
+
       </div>
     </div>
   );

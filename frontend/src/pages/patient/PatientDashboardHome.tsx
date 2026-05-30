@@ -65,21 +65,11 @@ export default function PatientDashboardHome() {
 
   return (
     <div className="space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle>Welcome back</CardTitle>
-          <CardDescription>Patient dashboard · {user?.email}</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Button asChild variant="outline">
-            <Link to="/patient/find-doctors">Browse all doctors</Link>
-          </Button>
-        </CardContent>
-      </Card>
+
 
       <Card>
         <CardHeader>
-          <CardTitle>AI doctor finder</CardTitle>
+          <CardTitle>Find Your Doctor</CardTitle>
           <CardDescription>
             Describe your symptoms and we will suggest matching specialists.
           </CardDescription>
@@ -92,7 +82,7 @@ export default function PatientDashboardHome() {
             <Textarea
               id="symptoms"
               rows={4}
-              placeholder="e.g. persistent chest tightness and shortness of breath when walking…"
+              placeholder="e.g. persistent chest tightness, shortness of breath when walking, etc."
               value={symptoms}
               onChange={(e) => setSymptoms(e.target.value)}
             />
@@ -105,14 +95,19 @@ export default function PatientDashboardHome() {
               {recommendError}
             </div>
           ) : null}
-          <Button onClick={findDoctor} disabled={recommending}>
-            {recommending ? "Finding doctors…" : "Find a Doctor"}
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button onClick={findDoctor} disabled={recommending}>
+              {recommending ? "Finding doctors…" : "Find a Doctor"}
+            </Button>
+            <Button asChild variant="outline">
+              <Link to="/patient/find-doctors">Browse All Doctors</Link>
+            </Button>
+          </div>
 
           {recommendation ? (
             <div className="space-y-3 border-t pt-4">
               <p className="text-sm text-muted-foreground">
-                <span className="font-medium text-foreground">Suggested specialties:</span>{" "}
+                <span className="font-medium text-foreground">Suggested Specialties:</span>{" "}
                 {recommendation.specialties.join(", ")}
               </p>
               {recommendation.reasoning ? (
@@ -139,7 +134,7 @@ export default function PatientDashboardHome() {
                           {doctor.bio ?? "No bio"}
                         </p>
                         <Button size="sm" asChild>
-                          <Link to={`/patient/doctors/${doctor.id}`}>Book visit</Link>
+                          <Link to={`/patient/doctors/${doctor.id}`}>Book a Visit</Link>
                         </Button>
                       </CardContent>
                     </Card>
@@ -153,7 +148,7 @@ export default function PatientDashboardHome() {
 
       <div className="space-y-3">
         <div className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold">Upcoming appointments</h2>
+          <h2 className="text-lg font-semibold">Upcoming Appointments</h2>
           <Link to="/patient/appointments" className="text-sm text-primary hover:underline">
             View all
           </Link>

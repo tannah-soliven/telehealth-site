@@ -22,7 +22,7 @@ export default function PatientAppointmentsPage() {
       const list = await fetchUpcomingAppointments({});
       setAppointments(list);
     } catch (e) {
-      setError(e instanceof ApiError ? e.message : "Failed to load appointments");
+      setError(e instanceof ApiError ? e.message : "Failed to Load Appointments");
     } finally {
       setLoading(false);
     }
@@ -47,10 +47,10 @@ export default function PatientAppointmentsPage() {
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">My Appointments</h1>
-          <p className="text-sm text-muted-foreground">Upcoming telehealth visits</p>
+          <p className="text-sm text-muted-foreground">Upcoming Telehealth Visits</p>
         </div>
         <Button asChild>
-          <Link to="/patient/find-doctors">Book new visit</Link>
+          <Link to="/patient/find-doctors">Book New Visit</Link>
         </Button>
       </div>
 
