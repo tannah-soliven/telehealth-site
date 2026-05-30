@@ -152,7 +152,7 @@ export default function DoctorSchedulePage() {
           </div>
 
           <Button onClick={save} disabled={saving || loading}>
-            {saving ? "Saving…" : "Save schedule"}
+            {saving ? "Saving…" : "Save Schedule"}
           </Button>
         </CardContent>
       </Card>

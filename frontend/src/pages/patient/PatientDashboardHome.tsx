@@ -65,8 +65,6 @@ export default function PatientDashboardHome() {
 
   return (
     <div className="space-y-6">
-
-
       <Card>
         <CardHeader>
           <CardTitle>Find Your Doctor</CardTitle>
@@ -146,6 +144,7 @@ export default function PatientDashboardHome() {
         </CardContent>
       </Card>
 
+      {/* Appointment List Section */}
       <div className="space-y-3">
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-semibold">Upcoming Appointments</h2>
@@ -153,13 +152,20 @@ export default function PatientDashboardHome() {
             View all
           </Link>
         </div>
+        
         {loading ? (
           <p className="text-sm text-muted-foreground">Loading appointments…</p>
         ) : (
-          <AppointmentList
-            appointments={appointments}
-            emptyMessage="No upcoming visits. Book a doctor to get started."
-          />
+          /* FIX: Targeting internal cards using Tailwind's arbitrary variant child selectors.
+             This searches inside <AppointmentList /> and forces its immediate child items 
+             to layout horizontally as multi-column items with a clean gap.
+          */
+          <div className="[&>div]:flex [&>div]:flex-row [&>div]:flex-wrap [&>div]:gap-4 [&>div>div]:max-w-md [&>div>div]:w-full">
+            <AppointmentList
+              appointments={appointments}
+              emptyMessage="No upcoming visits. Book a doctor to get started."
+            />
+          </div>
         )}
       </div>
     </div>

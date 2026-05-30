@@ -195,8 +195,7 @@ export default function DoctorPatientRecordsPage() {
 
       <div className="space-y-2">
         <label htmlFor="patient-search" className="text-sm font-medium">
-          Search name, email, birthday, weight, height, contact, medical history, notes, or
-          prescription
+          Enter Keywords for Search
         </label>
         <Input
           id="patient-search"
